@@ -9,7 +9,9 @@
     <script type="text/javascript" src="js/sylvester.js"></script>
     <script type="text/javascript" src="js/glUtils.js"></script>
     <script type="text/javascript" src="js/webgl.js"></script>
-    
+    <script type="text/javascript" src="js/jarvis.js"></script>
+
+
     <script id="shader-fs" type="x-shader/x-fragment">
         precision mediump float;
 
@@ -50,6 +52,11 @@
                 <canvas id="glcanvas" height="480" width="640">
                     Votre navigateur ne semble pas supporter l'élément HTML5 <code>&lt;canvas&gt;</code>.    
                 </canvas>
+            </div>
+            <div class="input-control">
+                <button onclick="Jarvis.start()">Jarvis</button>
+                <button>Voronoy</button>
+                <button>Delaunay</button>
             </div>
         </div>
     </div>

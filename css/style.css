@@ -31,9 +31,9 @@ canvas {
 	display: block;
 	text-align: center;
 	/*width: 700px;*/
-	-webkit-border-radius:15px;
+	/*-webkit-border-radius:15px;
     -moz-border-radius:15px;
-    border-radius:15px;
+    border-radius:15px;*/
 	box-shadow: 0 0 2px 2px rgba(0, 0, 0, .25);
 	/*border: 5px dotted #1fb4c1;*/
 }
@@ -50,15 +50,41 @@ canvas {
 
 .title_container
 {
-	-webkit-border-radius:15px;
+	/*-webkit-border-radius:15px;
     -moz-border-radius:15px;
-    border-radius:15px;
-	background-color: #1fb4c1;
+    border-radius:15px;*/
+	background-color: #000000;
+	color: white;
 	border: 2px solid #111111;
 }
 
 .title_container h1
 {
 	margin: 10px;
+}
+.input-control 
+{
+	display: inline-block;
+	margin-bottom: 10px;
+}
+
+.input-control button
+{
+	background-color: #000000;
+	color: white;
+	border:none;
+	cursor: pointer;
+    font-family: inherit;
+    font-size: 16px;
+    margin: 4px 2px 0 0;
+    min-width: 110px;
+    padding: 10px;
+
+}
+
+.input-control button:hover
+{
+	background-color: #FFFFFF;
+	color: #000000;
 }
 
