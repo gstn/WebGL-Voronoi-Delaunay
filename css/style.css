@@ -1,0 +1,64 @@
+*, *:before, *:after {
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  -webkit-touch-callout: none;
+  /* prevent callout to copy image, etc when tap to hold */
+  -moz-touch-callout: none;
+  -webkit-text-size-adjust: none;
+  /* prevent webkit from resizing text to fit */
+  -moz-text-size-adjust: none;
+  -webkit-tap-highlight-color: transparent;
+  /* make transparent link selection, adjust last value opacity 0 to 1.0 */
+  -moz-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  /* prevent copy paste, to allow, change 'none' to 'text' */
+  -moz-user-select: none;
+  /* prevent copy paste, to allow, change 'none' to 'text' */
+}
+canvas {
+	
+	box-shadow: 0 0 2px 2px rgba(0, 0, 0, .25);
+	width: 640px;
+	height: 480px;
+	background-color: black;
+
+	margin: 30px;
+}
+
+.content
+{
+	display: block;
+	text-align: center;
+	/*width: 700px;*/
+	-webkit-border-radius:15px;
+    -moz-border-radius:15px;
+    border-radius:15px;
+	box-shadow: 0 0 2px 2px rgba(0, 0, 0, .25);
+	/*border: 5px dotted #1fb4c1;*/
+}
+
+.page
+{
+	display: inline-block;
+	text-align: center;
+	font-family: helvetica;
+	font-size: 20px;
+
+
+}
+
+.title_container
+{
+	-webkit-border-radius:15px;
+    -moz-border-radius:15px;
+    border-radius:15px;
+	background-color: #1fb4c1;
+	border: 2px solid #111111;
+}
+
+.title_container h1
+{
+	margin: 10px;
+}
+
