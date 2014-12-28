@@ -2,16 +2,30 @@ var aspectRatio ;
 var canvas;
 var gl;
 var verticesBuffer;
-var curveVerticesBuffer;
 var colorBuffer;
 var perspectiveMatrix;
 var modelViewMatrix;
 var shaderProgram;
 var mouseDown = false;
+var movePoint = false;
+var selectedPointIndex = -1;
 var lastMouseX = null;
 var lastMouseY = null;
 var vertices = [];
-var curveVertices = [];
+var verticesInput = [];
+var convexHullVertices = [];
+var useJarvis = false;
+var useGrahamScan = false;
+var useDelaunay = false;
+var useVoronoi = false;
+var getAlgoDuration = false;
+var grid = [];
+var d = {};
+var start = 0;
+var stop = 0;
+var delay = -1;
+window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
+                              window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
 
 //start WebGL dans le canvas
 function startWebGL ()
@@ -21,13 +35,16 @@ function startWebGL ()
 
     initWebGL(canvas);
     aspectRatio = gl.drawingBufferWidth / gl.drawingBufferHeight;
+    computeOrthogonalGrid(20);
     console.log("Aspect ratio : "+aspectRatio);
 
     if(gl)
     {
-        gl.clearColor(1.0, 1.0, 1.0, 1.0);                      // Met la couleur d'effacement au noir et complétement opaque
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);                      // Met la couleur d'effacement au noir et complétement opaque
         gl.enable(gl.DEPTH_TEST);                               // Active le test de profondeur
-        gl.depthFunc(gl.LEQUAL);                                // Les objets proches cachent les objets lointains
+        gl.depthFunc(gl.LEQUAL);  
+        gl.enable(gl.BLEND); 
+        gl.blendFunc(gl.SRC_ALPHA,  gl.ONE_MINUS_SRC_ALPHA);                             // Les objets proches cachent les objets lointains
         gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);      // Efface les couleurs et le buffer de profondeur.
         //gl.enable(gl.VERTEX_PROGRAM_POINT_SIZE);
         //gl.enable(gl.POINT_SMOOTH);
@@ -37,9 +54,13 @@ function startWebGL ()
         
         canvas.onmousedown = handleMouseDown;
         canvas.onmouseup = handleMouseUp;
-        //canvas.onmousemove = handleMouseMove;
-        initBuffers();
+        canvas.onmousemove = handleMouseMove;
+        canvas.addEventListener('contextmenu', function(e) {
+            //alert("You've tried to open context menu"); //here you draw your own menu
+            e.preventDefault();
+        }, false);
         drawScene();
+
     }
 
 
@@ -53,7 +74,7 @@ function initWebGL (p_canvas)
     gl = null;
     try { 
         // Essaye de récupérer le contexte standard. En cas d'échec, il teste l'appel experimental
-        gl = p_canvas.getContext("experimental-webgl");
+        gl = p_canvas.getContext("experimental-webgl") || p_canvas.getContext("webgl");
         gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     } 
     catch(e) {} 
@@ -145,37 +166,123 @@ function getShader(p_gl, p_id)
 }
 
 
-function initBuffers()
+function initBuffers(p_vertices)
 {
     //console.log("initBuffers");
-    verticesBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER,verticesBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    var buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(p_vertices), gl.STATIC_DRAW);
 
-    curveVerticesBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER,curveVerticesBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(curveVertices), gl.STATIC_DRAW);
+    return buffer;
+}
 
+function computeOrthogonalGrid(p_step)
+{
+    for(var vertical_line = -gl.drawingBufferWidth/2; vertical_line < gl.drawingBufferWidth/2; vertical_line += p_step)
+    {
+        grid.push({x: vertical_line, y: -gl.drawingBufferHeight/2, z: 5});
+        grid.push({x: vertical_line, y: gl.drawingBufferHeight/2, z: 5});
+    }
+   
+    for(var horizontal_line = -gl.drawingBufferHeight/2; horizontal_line < gl.drawingBufferHeight/2; horizontal_line += p_step)
+    {
+        grid.push({x: -gl.drawingBufferWidth/2, y: horizontal_line, z: 5});
+        grid.push({x: gl.drawingBufferWidth/2 , y: horizontal_line, z: 5});
+    }
+
+}
+
+function drawOrthogonalGrid()
+{
+    drawVertices(flattenVerticesArray(grid), gl.LINES, [1.0, 1.0, 1.0,0.1]);
+    drawVertices(flattenVerticesArray(
+        [
+        {x:-gl.drawingBufferWidth/2, y: 0, z:5},
+        {x:gl.drawingBufferWidth/2, y: 0, z:5},
+        {x:0, y: -gl.drawingBufferHeight/2, z:5},
+        {x:0, y: gl.drawingBufferHeight/2, z:5}
+        ]), gl.LINES, [1.0, 1.0, 1.0,0.5]);
+   
 }
 
 function drawScene()
 {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    drawOrthogonalGrid();
+    vertices = flattenVerticesArray(verticesInput);
+    drawVertices(vertices, gl.POINTS, [1.0,0.3,0.3,1.0]);
 
-    //drawPoly();
-    drawControlPoints();
+    if(verticesInput.length > 2)
+    {
+        //console.log(verticesInput);
+
+        if(useJarvis)
+        {
+
+            Jarvis.start(verticesInput);
+            if(getAlgoDuration)
+            {
+                Jarvis.start(verticesInput);
+                delay = Jarvis.getExecDuration();
+                console.log(delay+"ms");
+                $("#log").html(delay+"ms");
+                getAlgoDuration = false;
+            }
+
+            convexHullVertices = flattenVerticesArray(Jarvis.convexHullVertices);
+        }
+        else
+        {
+            if(useGrahamScan)
+            {
+                GrahamScan.start(verticesInput);
+                drawVertices(flattenVerticesArray(GrahamScan.sortedVertices), gl.LINE_LOOP, [0.3,1.0,1.0,1.0]);
+                drawVertices([GrahamScan.barycenter.x,GrahamScan.barycenter.y,GrahamScan.barycenter.z], gl.POINTS, [0.3,1.0,0.3,1.0]);
+                convexHullVertices = flattenVerticesArray(GrahamScan.convexHullVertices);
+            }
+            else
+            {
+                if(useDelaunay)
+                {
+                   
+                    FlipDelaunay.start(verticesInput);
+
+                    
+                    convexHullVertices = flattenVerticesArray(FlipDelaunay.convexHullVertices);
+                    drawVertices(flattenVerticesArray(FlipDelaunay.edges), gl.LINES, [0.3,1.0,1.0,1.0]);
+                }
+                else
+                {
+                    if(useVoronoi)
+                    {
+                        console.log("use voronoi");
+                    }
+                }
+            }
+        }
+
+        //console.log(convexHullVertices);
+        drawVertices(convexHullVertices, gl.LINE_LOOP, [0.3,0.3,1.0,1.0]);
+    }
 
 }
 
-function drawPoly()
+function drawVertices(p_vertices, p_gl_draw_mode, p_color)
 {
-    //console.log("drawPoly");
-   
+    //console.log("drawVertices");
 
+    verticesBuffer = initBuffers(p_vertices);
     perspectiveMatrix = makePerspective(45, aspectRatio, 0.1, 100);
+    orthoMatrix = makeOrtho(
+        -gl.drawingBufferWidth/2,
+        gl.drawingBufferWidth/2,
+        -gl.drawingBufferHeight/2,
+        gl.drawingBufferHeight/2,
+        0,
+        10);
 
     modelViewMatrix = Matrix.I(4);
-    modelViewMatrix = modelViewMatrix.x(Matrix.Translation($V([-0.0, 0.0, -6.0])));
+    modelViewMatrix = modelViewMatrix.x(Matrix.Translation($V([0.0, 0.0, -6.0])).ensure4x4());
     
 
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
@@ -187,101 +294,193 @@ function drawPoly()
     var perspectiveMatrixUniform = gl.getUniformLocation(shaderProgram, "u_PerspectiveMatrix");
     gl.uniformMatrix4fv(perspectiveMatrixUniform, false, new Float32Array(perspectiveMatrix.flatten()));
 
-    var modelViewMatrixUniform = gl.getUniformLocation(shaderProgram, "u_ModelViewMatrix");
-    gl.uniformMatrix4fv(modelViewMatrixUniform, false, new Float32Array(modelViewMatrix.flatten()));
-
-    var color = [0.2,0.5,1.0,1.0];
-    var vertexColorUniform = gl.getUniformLocation(shaderProgram,"u_Color");
-    gl.uniform4fv(vertexColorUniform, Float32Array(color));
-
-    gl.drawArrays(gl.LINE_STRIP, 0, vertices.length/3);
-    
-}
-
-function drawControlPoints()
-{
-    //console.log("drawControlPoints");
-
-    perspectiveMatrix = makePerspective(45, aspectRatio, 0.1, 100);
-
-    modelViewMatrix = Matrix.I(4);
-    modelViewMatrix = modelViewMatrix.x(Matrix.Translation($V([-0.0, 0.0, -6.0])));
-    
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
-    gl.vertexAttribPointer(verticesBuffer, 3, gl.FLOAT, false, 0, 0);
-
-    var vertexPositionAttribute = gl.getAttribLocation(shaderProgram,"a_Position");
-    gl.enableVertexAttribArray(vertexPositionAttribute);
-
-    var perspectiveMatrixUniform = gl.getUniformLocation(shaderProgram, "u_PerspectiveMatrix");
-    gl.uniformMatrix4fv(perspectiveMatrixUniform, false, new Float32Array(perspectiveMatrix.flatten()));
+    var orthoMatrixUniform = gl.getUniformLocation(shaderProgram, "u_OrthoMatrix");
+    gl.uniformMatrix4fv(orthoMatrixUniform, false, new Float32Array(orthoMatrix.flatten()));
 
     var modelViewMatrixUniform = gl.getUniformLocation(shaderProgram, "u_ModelViewMatrix");
     gl.uniformMatrix4fv(modelViewMatrixUniform, false, new Float32Array(modelViewMatrix.flatten()));
 
     color = [1.0,0.3,0.3,1.0];
     var vertexColorUniform = gl.getUniformLocation(shaderProgram,"u_Color");
-    gl.uniform4fv(vertexColorUniform, Float32Array(color));
-    gl.drawArrays(gl.POINTS, 0, vertices.length/3);
+    gl.uniform4fv(vertexColorUniform, new Float32Array(p_color));
+    gl.drawArrays(p_gl_draw_mode, 0, p_vertices.length/3);
 }
 
 
+
 function handleMouseDown(event) {
-    console.log("handleMouseDown");
+    //console.log("handleMouseDown");
     mouseDown = true;
     var canvasBoundingRect = canvas.getBoundingClientRect();
     lastMouseX = event.clientX - canvasBoundingRect.left;
     lastMouseY = event.clientY - canvasBoundingRect.top;
-    
-    console.log(canvasBoundingRect);
-    console.log("mouse pos ("+lastMouseX+","+lastMouseY+")");
-
-    var click = [lastMouseX/320-1,1-lastMouseY/240,0.0]
-    if(!isInVertexArray(click)){
-        vertices = vertices.concat(click);
+    //console.log("button :"+event.button);
+    var click = {x: lastMouseX - gl.drawingBufferWidth/2, y: gl.drawingBufferHeight/2 - lastMouseY , z: 5.0};
+    //console.log(verticesInput);
+    selectedPointIndex = isInVertexArray(click);
+    if(event.button == 0)
+    {
+        if(selectedPointIndex == -1)
+        {
+            //console.log("ADD point");
+            movePoint = false;
+            verticesInput.push(click);
+        }
+        else
+        {
+            if(movePoint === false)
+            {
+                //console.log("MOVE point at index: "+selectedPointIndex);
+            }
+            movePoint = true;
+        }
+    }
+    else
+    {
+        if(event.button == 2)
+        {
+            if(selectedPointIndex != -1)
+            {
+                //console.log("REMOVE point at index: "+selectedPointIndex);
+                verticesInput.splice(selectedPointIndex,1);
+            }
+        }
     }
 
-    initBuffers();
     drawScene();
-
 }
 
 function handleMouseUp(event) {
     mouseDown = false;
+    movePoint = false;
 }
 
 function handleMouseMove(event) {
     if (!mouseDown) {
       return;
     }
-    var newX = event.clientX;
-    var newY = event.clientY;
+    if(movePoint)
+    {
+        //console.log("move");
+        var canvasBoundingRect = canvas.getBoundingClientRect();
+        lastMouseX = event.clientX - canvasBoundingRect.left;
+        lastMouseY = event.clientY - canvasBoundingRect.top;
+        var click = {x: lastMouseX - gl.drawingBufferWidth/2, y: gl.drawingBufferHeight/2 - lastMouseY , z: 5.0};
+        verticesInput[selectedPointIndex] = click;
+        vertices = flattenVerticesArray(verticesInput);
+        drawScene();
 
-    var deltaX = newX - lastMouseX;
-    var deltaY = newY - lastMouseY;
-
-    //console.log("delta : ("+deltaX+","+deltaY+")");
-    lastMouseX = newX
-    lastMouseY = newY;
+    }
 }
 
 function isInVertexArray(p_click)
 {
-    return false;
+    for(var i = 0; i < verticesInput.length; i++)
+    {
+        if(isSamePoint(p_click, verticesInput[i], 10))
+        {
+            console.log("same point "+i);
+            return i;
+        }
+    } 
+    return -1;
 }
 
-function delta(p1, p2) {
-    return {
-        x: p2.x - p1.x,
-        y: p2.y - p1.y
-    };
+function isSamePoint(p_click, p_point, p_pointSize)
+{
+    //console.log(p_click.x +" >= "+ (p_point.x - p_pointSize)+ " && " + p_click.x +" <= "+ (p_point.x + p_pointSize)+" --> "+( p_click.x >= (p_point.x - p_pointSize) && p_click.x <= (p_point.x + p_pointSize)));
+    //console.log(p_click.y +" >= "+ (p_point.y - p_pointSize)+ " && " + p_click.y +" <= "+ (p_point.y + p_pointSize)+" --> "+( p_click.y >= (p_point.y - p_pointSize) && p_click.y <= (p_point.y + p_pointSize)));
+    if( p_click.x >= (p_point.x - p_pointSize) && p_click.x <= (p_point.x + p_pointSize))
+    {
+        if( p_click.y >= (p_point.y - p_pointSize) && p_click.y <= (p_point.y + p_pointSize))
+        {
+            //console.log("existing point");
+            return true;
+        }
+        else
+        {
+            //console.log("not existing point");
+            return false;
+        }
+    }
+    else
+    {
+       // console.log("not existing point");
+        return false;
+    }
 }
 
-function getPointAt(p1, p2, t) {
-    var diff = delta(p1, p2);
-    return {
-        x: diff.x * t + p1.x,
-        y: diff.y * t + p1.y
-    };
+function changeConvexHullAlgorithme(p_algo)
+{
+
+    //console.log("Change algorithme to "+p_algo);
+    if(p_algo == "jarvis")
+    {
+        useJarvis = true;
+        useDelaunay = useGrahamScan = useVoronoi = false;
+    }
+    else
+    {
+        if(p_algo == "graham-scan")
+        {
+            useGrahamScan = true;
+            useDelaunay = useJarvis = useVoronoi = false;
+        }
+        else
+        {
+            if(p_algo == "delaunay")
+            {
+                useDelaunay = true;
+                useGrahamScan = useJarvis = useVoronoi = false; 
+            }
+            else
+            {
+                if(p_algo == "voronoi")
+                {
+                    useVoronoi = true;
+                    useGrahamScan = useJarvis = useDelaunay = false; 
+                }
+                else
+                {
+                    console.log("not implemented");
+                }            
+            }
+        }
+    }
+    drawScene();
 }
+
+function flattenVerticesArray(p_array)
+{
+    var tmp = [];
+    for(var i = 0; i < p_array.length; i++)
+    {
+        tmp.push(p_array[i].x);
+        tmp.push(p_array[i].y);
+        tmp.push(p_array[i].z);
+    }
+
+    return tmp;
+}
+
+function tick()
+{
+    requestAnimationFrame(tick);
+
+    
+    if(getAlgoDuration)
+    {
+        getAlgoDuration = false; 
+    }
+
+}
+
+
+
+function wantAlgoDuration()
+{
+    getAlgoDuration = true;
+    console.log("toto");
+
+}
+

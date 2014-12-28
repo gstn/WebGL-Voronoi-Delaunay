@@ -16,6 +16,11 @@
   -moz-user-select: none;
   /* prevent copy paste, to allow, change 'none' to 'text' */
 }
+
+body
+{
+	text-align: center;
+}
 canvas {
 	
 	box-shadow: 0 0 2px 2px rgba(0, 0, 0, .25);
@@ -23,7 +28,7 @@ canvas {
 	height: 480px;
 	background-color: black;
 
-	margin: 30px;
+	
 }
 
 .content
@@ -34,7 +39,7 @@ canvas {
 	/*-webkit-border-radius:15px;
     -moz-border-radius:15px;
     border-radius:15px;*/
-	box-shadow: 0 0 2px 2px rgba(0, 0, 0, .25);
+	/*box-shadow: 0 0 2px 2px rgba(0, 0, 0, .25);*/
 	/*border: 5px dotted #1fb4c1;*/
 }
 
@@ -44,7 +49,8 @@ canvas {
 	text-align: center;
 	font-family: helvetica;
 	font-size: 20px;
-
+	box-shadow: 0 0 2px 2px rgba(0, 0, 0, .25);
+	/*border: px solid #1fb4c1;*/
 
 }
 
@@ -62,10 +68,19 @@ canvas {
 {
 	margin: 10px;
 }
+
+.canvas_container
+{
+	float: left;
+	
+	margin: 30px;
+	margin-right: 10px;
+}
 .input-control 
 {
-	display: inline-block;
-	margin-bottom: 10px;
+	float: left;
+	margin: 30px;
+	margin-left: 10px;
 }
 
 .input-control button
@@ -88,3 +103,92 @@ canvas {
 	color: #000000;
 }
 
+.input-control button.selectedAlgo
+{
+	background-color: #BBBBBB;
+	color: #000000;
+}
+
+.input-control ul
+{
+	text-align: left;
+	list-style-type: none;
+	padding: 0px;
+}
+
+.input-control ul li
+{
+	margin-bottom: 5px;
+}
+
+/* Cachons la case à cocher */  
+[type="radio"]:not(:checked),  
+[type="radio"]:checked {  
+  position: absolute;  
+  left: -99999px;  
+}  
+   
+/* on prépare le label */  
+[type="radio"]:not(:checked) + label,  
+[type="radio"]:checked + label {  
+  position: relative; /* permet de positionner les pseudo-éléments */  
+  padding-left: 25px; /* fait un peu d'espace pour notre case à venir */  
+  cursor: pointer;    /* affiche un curseur adapté */  
+}  
+
+/* Aspect des checkboxes */  
+/* :before sert à créer la case à cocher */  
+[type="radio"]:not(:checked) + label:before,  
+[type="radio"]:checked + label:before {  
+  content: '';  
+  position: absolute;  
+  left:0; top: 2px;  
+  width: 20px; height: 20px; /* dim. de la case */  
+  border: 1px solid #aaa;  
+  background: #f8f8f8;  
+  border-radius: 3px; /* angles arrondis */  
+ /* box-shadow: inset 0 1px 3px rgba(0,0,0,.3) /* légère ombre interne */  
+}  
+   
+/* Aspect général de la coche */  
+[type="radio"]:not(:checked) + label:after,  
+[type="radio"]:checked + label:after {  
+  content: '✔';  
+  position: absolute;  
+  top: 0px; left: 4px;  
+  font-size: 16px;  
+  color: #000000;  
+  transition: all .2s; /* on prévoit une animation */  
+}  
+/* Aspect si "pas cochée" */  
+[type="radio"]:not(:checked) + label:after {  
+  opacity: 0; /* coche invisible */  
+  transform: scale(0); /* mise à l'échelle à 0 */  
+}  
+/* Aspect si "cochée" */  
+[type="radio"]:checked + label:after {  
+  opacity: 1; /* coche opaque */  
+  transform: scale(1); /* mise à l'échelle 1:1 */  
+}  
+
+/* aspect désactivée */  
+[type="radio"]:disabled:not(:checked) + label:before,  
+[type="radio"]:disabled:checked + label:before {  
+  box-shadow: none;  
+  border-color: #bbb;  
+  background-color: #ddd;  
+}  
+/* styles de la coche (si cochée/désactivée) */  
+[type="radio"]:disabled:checked + label:after {  
+  color: #999;  
+}  
+/* on style aussi le label quand désactivé */  
+[type="radio"]:disabled + label {  
+  color: #aaa;  
+}  
+   
+/* aspect au focus de l'élément */  
+[type="radio"]:checked:focus + label:before,  
+[type="radio"]:not(:checked):focus + label:before {  
+  border: 1px dotted black;  
+}  

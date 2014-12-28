@@ -1,15 +1,18 @@
 <html>
 <head>
-    <title>Jarvis - Voronoi - Delaunay</title>
+    <title>Convex Hull</title>
     <meta charset="utf-8"/>
    
     <link rel="stylesheet" type="text/css" href="css/style.css">
 
     <script type="text/javascript" src="js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="js/vect.js"></script>
     <script type="text/javascript" src="js/sylvester.js"></script>
     <script type="text/javascript" src="js/glUtils.js"></script>
     <script type="text/javascript" src="js/webgl.js"></script>
     <script type="text/javascript" src="js/jarvis.js"></script>
+    <script type="text/javascript" src="js/graham-scan.js"></script>
+    <script type="text/javascript" src="js/flip-delaunay.js"></script>
 
 
     <script id="shader-fs" type="x-shader/x-fragment">
@@ -28,12 +31,13 @@
         uniform vec4 u_Color;
         uniform mat4 u_ModelViewMatrix;
         uniform mat4 u_PerspectiveMatrix;
+        uniform mat4 u_OrthoMatrix;
 
         void main(void) {
             gl_PointSize = 10.0;
             //gl_Position = u_PerspectiveMatrix * u_ModelViewMatrix * vec4(a_Position, 1.0);
-            
-            gl_Position = vec4(a_Position, 1.0);
+            gl_Position = u_OrthoMatrix * u_ModelViewMatrix * vec4(a_Position, 1.0);
+            //gl_Position = vec4(a_Position, 1.0);
             v_Color = u_Color;
 
         }
@@ -44,7 +48,7 @@
     <div class="page">
         <div class="content">
             <div class="title_container">
-                <h1 >Jarvis - Voronoi - Delaunay</h1>
+                <h1 >Convex Hull</h1>
 
             </div>
             
@@ -53,10 +57,17 @@
                     Votre navigateur ne semble pas supporter l'élément HTML5 <code>&lt;canvas&gt;</code>.    
                 </canvas>
             </div>
-            <div class="input-control">
-                <button onclick="Jarvis.start()">Jarvis</button>
-                <button>Voronoy</button>
-                <button>Delaunay</button>
+            <div id="input-control" class="input-control">
+                <form action="#" >
+                    <ul>
+                        <li><input type="radio" name="algo" value="jarvis" id="jarvis" onchange="changeConvexHullAlgorithme('jarvis');"><label for="jarvis">Jarvis</label></li>
+                        <li><input type="radio" name="algo" value="graham-scan"  id="graham-scan" onchange="changeConvexHullAlgorithme('graham-scan');"><label for="graham-scan">Graham-Scan</label></li>
+                        <li><input type="radio" name="algo" value="voronoi"  id="voronoi" onchange="changeConvexHullAlgorithme('voronoi');"><label for="voronoi">Voronoi</label></li>
+                        <li><input type="radio" name="algo" value="delaunay"  id="delaunay" onchange="changeConvexHullAlgorithme('delaunay');"><label for="delaunay">Delaunay</label></li>
+                    </ul>
+                </form>
+                <div id="log"></div>
+                <button onclick="wantAlgoDuration();">Get Compute Delay</button>               
             </div>
         </div>
     </div>
